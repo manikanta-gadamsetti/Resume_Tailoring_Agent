@@ -10,13 +10,14 @@ st.set_page_config(page_title="Resume Tailoring Agent", layout="wide")
 st.title("🚀 Manikanta's Custom Resume Tailor")
 st.markdown("Upload your base resume, paste a Job Description, and get a tailored PDF.")
 
-# Sidebar for API Key to keep the UI clean
-with st.sidebar:
-    st.header("Configuration")
-    api_key = st.text_input("Enter Gemini API Key:", type="password")
-    if api_key:
-        genai.configure(api_key=api_key)
-    st.markdown("[Get a free API key here](https://aistudio.google.com/)")
+# --- SECURE API KEY CONFIGURATION ---
+# The app will automatically look for the key in Streamlit's hidden secrets
+try:
+    genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
+except KeyError:
+    st.error("🚨 API Key not found! Please configure 'GEMINI_API_KEY' in your Streamlit Cloud Secrets.")
+    st.stop()
+# ------------------------------------
 
 def extract_text_from_pdf(uploaded_file):
     reader = PyPDF2.PdfReader(uploaded_file)
@@ -162,9 +163,7 @@ with col2:
     job_desc = st.text_area("2. Paste Job Description Here", height=150)
 
 if st.button("Generate Tailored Resume", type="primary"):
-    if not api_key:
-        st.error("Please enter your Gemini API Key in the sidebar.")
-    elif uploaded_file and job_desc:
+    if uploaded_file and job_desc:
         with st.spinner("AI is analyzing the JD and rewriting your resume..."):
             base_text = extract_text_from_pdf(uploaded_file)
             tailored_json = tailor_resume_content(base_text, job_desc)
@@ -172,7 +171,6 @@ if st.button("Generate Tailored Resume", type="primary"):
             if tailored_json:
                 pdf_file = generate_v6_pdf(tailored_json)
                 
-                # Provide Download Link
                 with open(pdf_file, 'rb') as f:
                     pdf_bytes = f.read()
                 
